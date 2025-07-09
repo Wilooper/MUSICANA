@@ -1,2 +1,2 @@
 # MUSICANA
-A free music site mad in india
+A free music site made in india
