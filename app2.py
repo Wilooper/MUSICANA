@@ -649,7 +649,6 @@ def batch_request():
 
 # Download audio endpoint
 @app.route("/download/<video_id>", methods=["GET"])
-@cache.cached(query_string=True)
 def download_audio(video_id):
     try:
         return download_song_for_client(video_id)
