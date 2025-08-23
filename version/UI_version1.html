@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Music Hub</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin:0; font-family: system-ui, sans-serif;
+    background:#0b0b0f; color:#f0f0f5;
+    display:flex; flex-direction:column; min-height:100vh;
+  }
+  header {
+    padding:16px; border-bottom:1px solid #222; text-align:center;
+    background:#111219; position:sticky; top:0; z-index:20;
+  }
+  h1 { margin:0 0 10px; font-size:22px; font-weight:700; }
+  .searchbar { display:flex; justify-content:center; gap:8px; max-width:600px; margin:0 auto; }
+  input[type="text"] {
+    flex:1; padding:10px 14px; border-radius:12px;
+    border:1px solid #2a2a33; background:#1a1a22; color:#fff;
+  }
+  button {
+    padding:10px 16px; border:0; border-radius:12px;
+    background:#2b66ff; color:white; cursor:pointer; font-weight:500;
+  }
+  button:disabled { opacity:.6; cursor:not-allowed; }
+  main { flex:1; padding:20px; max-width:1000px; margin:0 auto; width:100%; }
+  .results { display:grid; gap:14px; }
+  .card {
+    display:flex; align-items:center; gap:14px;
+    padding:12px 16px; border-radius:14px;
+    background:#16171f; border:1px solid #24242e;
+  }
+  .thumb { width:72px; height:72px; border-radius:12px; object-fit:cover; background:#191a22; }
+  .meta { flex:1; }
+  .title { font-weight:600; font-size:16px; margin-bottom:4px; }
+  .artist { opacity:.8; font-size:14px; }
+  .actions { display:flex; gap:8px; }
+  .pill {
+    font-size:13px; padding:7px 12px; border-radius:999px;
+    border:1px solid #2a2a33; background:#20212a; cursor:pointer;
+  }
+  .pill:hover { background:#2b66ff; border-color:#2b66ff; color:white; }
+  .notice { font-size:12px; opacity:.8; margin-top:6px; }
+
+  /* Player */
+  .player-bar {
+    position:sticky; bottom:0; left:0; right:0;
+    background:#111219; border-top:1px solid #222;
+    display:flex; align-items:center; gap:16px;
+    padding:10px 16px; z-index:30;
+  }
+  .player-thumb { width:48px; height:48px; border-radius:8px; object-fit:cover; background:#222; }
+  .player-meta { flex:1; min-width:0; }
+  .player-title { font-size:15px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .player-artist { font-size:13px; opacity:.7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  audio { width:200px; }
+  .lyrics-box {
+    max-height:200px; overflow-y:auto; background:#0f0f18;
+    border-top:1px solid #222; padding:12px; font-size:14px; line-height:1.5; display:none;
+  }
+
+  /* Suggestions */
+  #suggestionsBox {
+    list-style:none; padding:0; margin:6px auto 0; max-width:600px;
+    background:#16171f; border:1px solid #2a2a33; border-radius:10px;
+    display:none; position:absolute; left:0; right:0; z-index:50;
+  }
+
+  /* Mood playlists */
+  .mood-buttons { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .playlist-card {
+    display:flex; flex-direction:column; align-items:center;
+    background:#16171f; border:1px solid #24242e;
+    border-radius:12px; padding:10px; cursor:pointer; width:150px;
+  }
+  .playlist-card img { width:100%; border-radius:10px; object-fit:cover; }
+  .playlist-card span { margin-top:6px; font-size:14px; text-align:center; }
+  .playlist-grid { display:flex; gap:14px; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎵 Music Hub</h1>
+  <form id="searchForm" class="searchbar">
+    <input id="query" type="text" placeholder="Search for songs or artists" required />
+    <button id="searchBtn" type="submit">Search</button>
+  </form>
+  <ul id="suggestionsBox"></ul>
+  <div class="notice">Powered by your API at <code>http://127.0.0.1:5000</code></div>
+</header>
+
+<main>
+  <div id="results" class="results"></div>
+
+  <h2 style="margin-top:24px;">Up Next</h2>
+  <div id="related" class="results"></div>
+
+  <h2 style="margin-top:24px;">Mood Playlists</h2>
+  <div class="mood-buttons">
+    <button class="pill" onclick="loadMood('chill')">Chill</button>
+    <button class="pill" onclick="loadMood('study')">Study</button>
+    <button class="pill" onclick="loadMood('workout')">Workout</button>
+    <button class="pill" onclick="loadMood('party')">Party</button>
+  </div>
+  <div id="moodResults" class="playlist-grid"></div>
+    <h2 style="margin-top:24px;">Top Charts</h2>
+    <div id="chartsResults" class="playlist-grid"></div>
+    <h2 style="margin-top:24px;">Recently Played</h2>
+    <div id="recentlyPlayed" class="results"></div>
+
+
+</main>
+
+<!-- Now playing bar -->
+<div class="player-bar">
+  <img id="playerThumb" class="player-thumb" src="" alt="">
+  <div class="player-meta">
+    <div id="playerTitle" class="player-title">Nothing playing</div>
+    <div id="playerArtist" class="player-artist"></div>
+  </div>
+  <audio id="player" controls></audio>
+  <button id="likeBtn" class="pill">👍</button>
+  <button id="dislikeBtn" class="pill">👎</button>
+  <button id="shuffleBtn" class="pill">🔀</button>
+  <button id="repeatBtn" class="pill">🔁</button>
+
+  <button id="toggleLyrics" class="pill">Lyrics</button>
+</div>
+<div id="lyricsBox" class="lyrics-box"></div>
+
+<script>
+const API = "http://127.0.0.1:5000";
+const $ = s => document.querySelector(s);
+
+const resultsEl = $("#results");
+const relatedEl = $("#related");
+const moodEl = $("#moodResults");
+const suggestionsBox = $("#suggestionsBox");
+
+const player = $("#player");
+const playerThumb = $("#playerThumb");
+const playerTitle = $("#playerTitle");
+const playerArtist = $("#playerArtist");
+const lyricsBox = $("#lyricsBox");
+const likeBtn = $("#likeBtn");
+const dislikeBtn = $("#dislikeBtn");
+
+let currentId = null;
+
+// --- Search Form ---
+$("#searchForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const q = $("#query").value.trim();
+  if (!q) return;
+  $("#searchBtn").disabled = true;
+  $("#searchBtn").textContent = "Searching…";
+  resultsEl.innerHTML = "";
+  try {
+    const res = await fetch(`${API}/search?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    renderResults(data.results || []);
+  } catch (err) {
+    resultsEl.innerHTML = `<div class="pill">Error: ${err.message}</div>`;
+  } finally {
+    $("#searchBtn").disabled = false;
+    $("#searchBtn").textContent = "Search";
+  }
+});
+
+// --- Render Search Results ---
+function renderResults(items) {
+  resultsEl.innerHTML = "";
+  if (!items.length) {
+    resultsEl.innerHTML = `<div class="pill">No results</div>`;
+    return;
+  }
+  for (const it of items) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <img class="thumb" src="${it.thumbnails?.[0] || ""}" alt="">
+      <div class="meta">
+        <div class="title">${escapeHtml(it.title)}</div>
+        <div class="artist">${escapeHtml(it.artists?.join(", ") || "")}</div>
+      </div>
+      <div class="actions">
+        <button data-act="play" class="pill">Play</button>
+        <button data-act="dl" class="pill">Download</button>
+        <a data-act="stream" class="pill" href="#" target="_blank">Stream</a>
+      </div>
+    `;
+    card.querySelector("[data-act=play]").addEventListener("click", () => playSong(it));
+    card.querySelector("[data-act=dl]").addEventListener("click", () => window.location.href=`${API}/download/${it.videoId}`);
+    card.querySelector("[data-act=stream]").addEventListener("click", async (e) => {
+      e.preventDefault();
+      const url = await getStreamUrl(it.videoId);
+      if (url) e.currentTarget.href = url;
+    });
+    resultsEl.appendChild(card);
+  }
+}
+
+// --- Fetch Stream URL ---
+async function getStreamUrl(id) {
+  try {
+    const r = await fetch(`${API}/stream/${encodeURIComponent(id)}`);
+    const j = await r.json();
+    return j.stream_url;
+  } catch { return null; }
+}
+
+// --- Play Song (with Related Fetch) ---
+async function playSong(track) {
+  currentId = track.videoId;
+  playerThumb.src = track.thumbnails?.[0] || "";
+  playerTitle.textContent = track.title;
+  playerArtist.textContent = track.artists?.join(", ") || "";
+  const url = await getStreamUrl(track.videoId);
+  if (url) { player.src = url; player.play(); }
+  lyricsBox.style.display = "none";
+  fetchRelated(track.videoId);   // fetch related whenever a song plays
+  resetRatings();
+}
+
+// --- Lyrics Toggle ---
+$("#toggleLyrics").addEventListener("click", async () => {
+  if (!currentId) return;
+  if (lyricsBox.style.display === "block") {
+    lyricsBox.style.display = "none";
+    return;
+  }
+  lyricsBox.style.display = "block";
+  lyricsBox.textContent = "Loading lyrics…";
+  try {
+    const r = await fetch(`${API}/song/${encodeURIComponent(currentId)}/lyrics`);
+    const j = await r.json();
+    lyricsBox.textContent = j.lyrics || j.error || "Lyrics unavailable.";
+  } catch {
+    lyricsBox.textContent = "Failed to fetch lyrics.";
+  }
+});
+
+// --- Ratings (Like / Dislike) ---
+async function rateSong(rating) {
+  if (!currentId) return;
+  try {
+    await fetch(`${API}/song/${encodeURIComponent(currentId)}/rate`, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ rating })
+    });
+    if (rating==="LIKE") { likeBtn.style.background="#2b66ff"; dislikeBtn.style.background=""; }
+    if (rating==="DISLIKE") { dislikeBtn.style.background="#2b66ff"; likeBtn.style.background=""; }
+  } catch { alert("Failed to rate"); }
+}
+function resetRatings() {
+  likeBtn.style.background=""; dislikeBtn.style.background="";
+}
+likeBtn.addEventListener("click",()=>rateSong("LIKE"));
+dislikeBtn.addEventListener("click",()=>rateSong("DISLIKE"));
+
+// --- Search Suggestions ---
+$("#query").addEventListener("input", async (e) => {
+  const q = e.target.value.trim();
+  if (!q) { suggestionsBox.style.display = "none"; return; }
+  try {
+    const r = await fetch(`${API}/suggestions?q=${encodeURIComponent(q)}`);
+    const j = await r.json();
+    suggestionsBox.innerHTML = "";
+    if (!j.suggestions?.length) { suggestionsBox.style.display="none"; return; }
+    for (const s of j.suggestions) {
+      const li = document.createElement("li");
+      li.textContent = s;
+      li.style.padding="8px 12px"; li.style.cursor="pointer";
+      li.addEventListener("click", () => {
+        $("#query").value = s;
+        suggestionsBox.style.display="none";
+        $("#searchForm").dispatchEvent(new Event("submit"));
+      });
+      li.onmouseover = () => li.style.background="#222";
+      li.onmouseout  = () => li.style.background="transparent";
+      suggestionsBox.appendChild(li);
+    }
+    suggestionsBox.style.display = "block";
+  } catch { suggestionsBox.style.display="none"; }
+});
+
+document.addEventListener("click", (e) => {
+  if (!suggestionsBox.contains(e.target) && e.target.id!=="query") {
+    suggestionsBox.style.display="none";
+  }
+});
+
+// --- Related Songs Autoplay ---
+async function fetchRelated(id) {
+  try {
+    const r = await fetch(`${API}/song/${encodeURIComponent(id)}/related?limit=6`);
+    const j = await r.json();
+    renderRelated(j.related || []);
+  } catch (e) {
+    relatedEl.innerHTML = "<div class='pill'>No related songs</div>";
+  }
+}
+
+function renderRelated(items) {
+  relatedEl.innerHTML = "";
+  for (const it of items) {
+    const card = document.createElement("div");
+    card.className="card";
+    card.innerHTML=`
+      <img class="thumb" src="${it.thumbnails?.[0]||""}" alt="">
+      <div class="meta">
+        <div class="title">${escapeHtml(it.title)}</div>
+        <div class="artist">${escapeHtml(it.artists?.join(", ")||"")}</div>
+      </div>
+      <div class="actions">
+        <button class="pill">Play</button>
+      </div>
+    `;
+    card.querySelector("button").addEventListener("click",()=> playSong(it));
+    relatedEl.appendChild(card);
+  }
+}
+
+// --- Auto play next when song ends ---
+player.addEventListener("ended", () => {
+  const first = relatedEl.querySelector(".card");
+  if (first) first.querySelector("button").click();
+});
+
+// --- Mood Playlists ---
+async function loadMood(mood) {
+  moodEl.innerHTML = `<div class="pill">Loading ${mood} playlists…</div>`;
+  try {
+    const r = await fetch(`${API}/mood?mood=${encodeURIComponent(mood)}&limit=8`);
+    const j = await r.json();
+    moodEl.innerHTML = "";
+    for (const pl of j.playlists || []) {
+      const card = document.createElement("div");
+      card.className="playlist-card";
+      card.innerHTML=`
+        <img src="${pl.thumbnails?.[0]||""}" alt="">
+        <span>${escapeHtml(pl.title)}</span>
+      `;
+      card.addEventListener("click",()=>loadPlaylist(pl.playlist_id));
+      moodEl.appendChild(card);
+    }
+  } catch { moodEl.innerHTML="<div class='pill'>Failed to load playlists</div>"; }
+}
+
+async function loadPlaylist(id) {
+  resultsEl.innerHTML="<div class='pill'>Loading playlist…</div>";
+  try {
+    const r = await fetch(`${API}/playlist?id=${encodeURIComponent(id)}`);
+    const j = await r.json();
+    renderResults(j.tracks || []);
+  } catch { resultsEl.innerHTML="<div class='pill'>Failed to load playlist</div>"; }
+}
+  // --- Top Charts ---
+async function loadCharts(country="IN") {
+  const chartsEl = $("#chartsResults");
+  chartsEl.innerHTML = `<div class="pill">Loading Top Charts…</div>`;
+  try {
+    const r = await fetch(`${API}/charts?country=${encodeURIComponent(country)}`);
+    const j = await r.json();
+    chartsEl.innerHTML = "";
+    for (const pl of j.playlists || []) {
+      const card = document.createElement("div");
+      card.className="playlist-card";
+      card.innerHTML=`
+        <img src="${pl.thumbnails?.[0]||""}" alt="">
+        <span>${escapeHtml(pl.title)}</span>
+      `;
+      card.addEventListener("click",()=>loadPlaylist(pl.playlist_id));
+      chartsEl.appendChild(card);
+    }
+  } catch {
+    chartsEl.innerHTML = "<div class='pill'>Failed to load charts</div>";
+  }
+}
+
+// auto-load charts on page load
+document.addEventListener("DOMContentLoaded", () => loadCharts("IN"));
+
+
+// --- Helper ---
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+</script>
+</body>
+</html>
