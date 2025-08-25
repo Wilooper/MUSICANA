@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Music Site</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            padding-bottom: 140px; /* ✅ space for bottom player */
+        }
+        section { margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; }
+        h2 { margin-top: 0; }
+        input, button, select { margin-right: 10px; padding: 5px; }
+        pre { background: #f4f4f4; padding: 10px; overflow: auto; max-height: 400px; }
+        audio { width: 100%; }
+        #player { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            width: 100%; 
+            background: #eee; 
+            padding: 10px; 
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.2); 
+            z-index: 1000; /* ✅ stays above content */
+        }
+        .error { color: red; }
+        .note { font-size: 0.9em; color: #555; }
+    </style>
+</head>
+<body>
+    <h1>Simple Music Site</h1>
+    
+    <!-- Audio Player -->
+    <div id="player">
+        <audio id="audioPlayer" controls></audio>
+        <p id="nowPlaying">No song playing</p>
+    </div>
+
+    <!-- Search Music -->
+    <section>
+        <h2>Search Music</h2>
+        <input type="text" id="searchQuery" placeholder="Search query (e.g., pop music)" required>
+        <select id="searchFilter">
+            <option value="">No Filter</option>
+            <option value="songs">Songs</option>
+            <option value="videos">Videos</option>
+            <option value="albums">Albums</option>
+            <option value="artists">Artists</option>
+            <option value="playlists">Playlists</option>
+        </select>
+        <input type="number" id="searchPage" value="1" min="1" placeholder="Page">
+        <input type="number" id="searchPageSize" value="20" min="1" placeholder="Page Size">
+        <button onclick="searchMusic()">Search</button>
+        <pre id="searchResults"></pre>
+    </section>
+
+    <!-- Get Playlist -->
+    <section>
+        <h2>Get Playlist</h2>
+        <input type="text" id="playlistId" placeholder="Playlist ID" required>
+        <input type="number" id="playlistLimit" value="100" min="1" placeholder="Limit">
+        <button onclick="getPlaylist()">Get Playlist</button>
+        <pre id="playlistResults"></pre>
+    </section>
+
+    <!-- Create Playlist -->
+    <section>
+        <h2>Create Playlist <span class="note">(Requires Authentication)</span></h2>
+        <input type="text" id="createTitle" placeholder="Title" required>
+        <input type="text" id="createDescription" placeholder="Description (optional)">
+        <select id="createPrivacy">
+            <option value="PUBLIC">Public</option>
+            <option value="PRIVATE">Private</option>
+            <option value="UNLISTED">Unlisted</option>
+        </select>
+        <button onclick="createPlaylist()">Create</button>
+        <pre id="createPlaylistResults"></pre>
+    </section>
+
+    <!-- Add to Playlist -->
+    <section>
+        <h2>Add to Playlist <span class="note">(Requires Authentication)</span></h2>
+        <input type="text" id="addPlaylistId" placeholder="Playlist ID" required>
+        <input type="text" id="addVideoIds" placeholder="Video IDs (comma-separated)" required>
+        <button onclick="addToPlaylist()">Add</button>
+        <pre id="addPlaylistResults"></pre>
+    </section>
+
+    <!-- Remove from Playlist -->
+    <section>
+        <h2>Remove from Playlist <span class="note">(Requires Authentication)</span></h2>
+        <input type="text" id="removePlaylistId" placeholder="Playlist ID" required>
+        <input type="text" id="removeVideoIds" placeholder="Video IDs (comma-separated)" required>
+        <button onclick="removeFromPlaylist()">Remove</button>
+        <pre id="removePlaylistResults"></pre>
+    </section>
+
+    <!-- Get Song Details -->
+    <section>
+        <h2>Get Song Details</h2>
+        <input type="text" id="songVideoId" placeholder="Video ID" required>
+        <button onclick="getSongDetails()">Get Details</button>
+        <pre id="songDetailsResults"></pre>
+    </section>
+
+    <!-- Get Stream URL and Play -->
+    <section>
+        <h2>Stream Song</h2>
+        <input type="text" id="streamVideoId" placeholder="Video ID" required>
+        <select id="streamQuality">
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+            <option value="high">High</option>
+        </select>
+        <button onclick="getStreamUrl()">Stream</button>
+        <pre id="streamResults"></pre>
+    </section>
+
+    <!-- Get Related Content -->
+    <section>
+        <h2>Get Related Content</h2>
+        <input type="text" id="relatedVideoId" placeholder="Video ID" required>
+        <input type="number" id="relatedLimit" value="50" min="1" placeholder="Limit">
+        <input type="number" id="relatedOffset" value="0" min="0" placeholder="Offset">
+        <button onclick="getRelatedContent()">Get Related</button>
+        <pre id="relatedResults"></pre>
+    </section>
+
+    <!-- Get Lyrics -->
+    <section>
+        <h2>Get Lyrics</h2>
+        <input type="text" id="lyricsVideoId" placeholder="Video ID" required>
+        <button onclick="getLyrics()">Get Lyrics</button>
+        <pre id="lyricsResults"></pre>
+    </section>
+
+    <!-- Rate Song -->
+    <section>
+        <h2>Rate Song <span class="note">(Requires Authentication)</span></h2>
+        <input type="text" id="rateVideoId" placeholder="Video ID" required>
+        <select id="rateRating">
+            <option value="LIKE">Like</option>
+            <option value="DISLIKE">Dislike</option>
+            <option value="INDIFFERENT">Indifferent</option>
+        </select>
+        <button onclick="rateSong()">Rate</button>
+        <pre id="rateResults"></pre>
+    </section>
+
+    <!-- Browse Categories/Genres -->
+    <section>
+        <h2>Browse Categories</h2>
+        <input type="text" id="browseCategory" placeholder="Category/Genre (e.g., Pop)" required>
+        <input type="number" id="browseLimit" value="20" min="1" placeholder="Limit">
+        <button onclick="browseMusic()">Browse</button>
+        <pre id="browseResults"></pre>
+    </section>
+
+    <!-- Get Mood Playlists -->
+    <section>
+        <h2>Get Mood Playlists</h2>
+        <input type="text" id="moodMood" placeholder="Mood (e.g., Chill)" required>
+        <input type="number" id="moodLimit" value="20" min="1" placeholder="Limit">
+        <button onclick="getMoodPlaylists()">Get Moods</button>
+        <pre id="moodResults"></pre>
+    </section>
+
+    <!-- Get User Library -->
+    <section>
+        <h2>Get User Library <span class="note">(Requires Authentication)</span></h2>
+        <input type="number" id="libraryLimit" value="50" min="1" placeholder="Limit">
+        <button onclick="getUserLibrary()">Get Library</button>
+        <pre id="libraryResults"></pre>
+    </section>
+
+    <!-- Get User Uploads -->
+    <section>
+        <h2>Get User Uploads <span class="note">(Requires Authentication)</span></h2>
+        <input type="number" id="uploadsLimit" value="50" min="1" placeholder="Limit">
+        <button onclick="getUserUploads()">Get Uploads</button>
+        <pre id="uploadsResults"></pre>
+    </section>
+
+    <!-- Get Top Charts -->
+    <section>
+        <h2>Get Top Charts</h2>
+        <input type="text" id="chartsCountry" value="US" placeholder="Country Code (e.g., US)" required>
+        <input type="number" id="chartsLimit" value="20" min="1" placeholder="Limit">
+        <button onclick="getTopCharts()">Get Charts</button>
+        <pre id="chartsResults"></pre>
+    </section>
+
+    <!-- Get Search Suggestions -->
+    <section>
+        <h2>Get Search Suggestions</h2>
+        <input type="text" id="suggestionsQuery" placeholder="Query" required>
+        <button onclick="getSearchSuggestions()">Get Suggestions</button>
+        <pre id="suggestionsResults"></pre>
+    </section>
+
+    <!-- Batch Request -->
+    <section>
+        <h2>Batch Request</h2>
+        <input type="text" id="batchVideoIds" placeholder="Video IDs (comma-separated)">
+        <input type="text" id="batchPlaylistIds" placeholder="Playlist IDs (comma-separated)">
+        <input type="number" id="batchLimit" value="50" min="1" placeholder="Limit">
+        <input type="number" id="batchOffset" value="0" min="0" placeholder="Offset">
+        <button onclick="batchRequest()">Batch</button>
+        <pre id="batchResults"></pre>
+    </section>
+
+    <!-- Download Audio -->
+    <section>
+        <h2>Download Audio</h2>
+        <input type="text" id="downloadVideoId" placeholder="Video ID" required>
+        <button onclick="downloadAudio()">Download</button>
+        <pre id="downloadResults"></pre>
+    
+
+
+    <script>
+    const API_BASE = 'http://localhost:5000'; // Adjust if API is hosted elsewhere
+    const audioPlayer = document.getElementById('audioPlayer');
+    const nowPlaying = document.getElementById('nowPlaying');
+
+    async function apiRequest(endpoint, method = 'GET', body = null, queryParams = {}) {
+        let url = `${API_BASE}${endpoint}`;
+        if (Object.keys(queryParams).length) {
+            url += '?' + new URLSearchParams(queryParams).toString();
+        }
+        const options = {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+        };
+        if (body) options.body = JSON.stringify(body);
+        try {
+            const response = await fetch(url, options);
+            if (response.headers.get('content-type')?.includes('application/json')) {
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                }
+                return data;
+            } else {
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || `HTTP error! status: ${response.status}`);
+                }
+                return response;
+            }
+        } catch (e) {
+            throw new Error(`Request failed: ${e.message}`);
+        }
+    }
+
+    function displayResults(elementId, data) {
+        document.getElementById(elementId).textContent =
+            typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+    }
+
+    function displayError(elementId, error) {
+        document.getElementById(elementId).textContent = `Error: ${error.message}`;
+        document.getElementById(elementId).classList.add('error');
+    }
+
+    function validateInput(inputId, errorMessage) {
+        const value = document.getElementById(inputId).value.trim();
+        if (!value) {
+            throw new Error(errorMessage);
+        }
+        return value;
+    }
+
+    async function searchMusic() {
+        try {
+            const q = validateInput('searchQuery', 'Search query is required');
+            const filter = document.getElementById('searchFilter').value || undefined;
+            const page = parseInt(document.getElementById('searchPage').value);
+            const page_size = parseInt(document.getElementById('searchPageSize').value);
+            if (page < 1 || page_size < 1) {
+                throw new Error('Page and page size must be positive integers');
+            }
+            const data = await apiRequest('/search', 'GET', null, { q, filter, page, page_size });
+            displayResults('searchResults', data);
+        } catch (e) {
+            displayError('searchResults', e);
+        }
+    }
+
+    async function getPlaylist() {
+        try {
+            const id = validateInput('playlistId', 'Playlist ID is required');
+            const limit = parseInt(document.getElementById('playlistLimit').value);
+            if (limit < 1) throw new Error('Limit must be a positive integer');
+            const data = await apiRequest('/playlist', 'GET', null, { id, limit });
+            displayResults('playlistResults', data);
+        } catch (e) {
+            displayError('playlistResults', e);
+        }
+    }
+
+    async function createPlaylist() {
+        try {
+            const title = validateInput('createTitle', 'Playlist title is required');
+            const description = document.getElementById('createDescription').value;
+            const privacy_status = document.getElementById('createPrivacy').value;
+            const data = await apiRequest('/playlist/create', 'POST', { title, description, privacy_status });
+            displayResults('createPlaylistResults', data);
+        } catch (e) {
+            displayError('createPlaylistResults', e);
+        }
+    }
+
+    async function addToPlaylist() {
+        try {
+            const playlist_id = validateInput('addPlaylistId', 'Playlist ID is required');
+            const video_ids = validateInput('addVideoIds', 'At least one video ID is required')
+                .split(',')
+                .map(id => id.trim())
+                .filter(id => id);
+            if (!video_ids.length) throw new Error('At least one valid video ID is required');
+            const data = await apiRequest('/playlist/add', 'POST', { playlist_id, video_ids });
+            displayResults('addPlaylistResults', data);
+        } catch (e) {
+            displayError('addPlaylistResults', e);
+        }
+    }
+
+    async function removeFromPlaylist() {
+        try {
+            const playlist_id = validateInput('removePlaylistId', 'Playlist ID is required');
+            const video_ids = validateInput('removeVideoIds', 'At least one video ID is required')
+                .split(',')
+                .map(id => id.trim())
+                .filter(id => id);
+            if (!video_ids.length) throw new Error('At least one valid video ID is required');
+            const data = await apiRequest('/playlist/remove', 'POST', { playlist_id, video_ids });
+            displayResults('removePlaylistResults', data);
+        } catch (e) {
+            displayError('removePlaylistResults', e);
+        }
+    }
+
+    async function getSongDetails() {
+        try {
+            const video_id = validateInput('songVideoId', 'Video ID is required');
+            const data = await apiRequest(`/song/${video_id}`);
+            displayResults('songDetailsResults', data);
+        } catch (e) {
+            displayError('songDetailsResults', e);
+        }
+    }
+
+    async function getStreamUrl() {
+        try {
+            const video_id = validateInput('streamVideoId', 'Video ID is required');
+            const quality = document.getElementById('streamQuality').value;
+            const data = await apiRequest(`/stream/${video_id}`, 'GET', null, { quality });
+            displayResults('streamResults', data);
+            if (data.stream_url) {
+                audioPlayer.src = data.stream_url;
+                audioPlayer.play();
+                nowPlaying.textContent = `Now Playing: ${data.title || video_id}`;
+            }
+        } catch (e) {
+            displayError('streamResults', e);
+        }
+    }
+
+    async function getRelatedContent() {
+        try {
+            const video_id = validateInput('relatedVideoId', 'Video ID is required');
+            const limit = parseInt(document.getElementById('relatedLimit').value);
+            const offset = parseInt(document.getElementById('relatedOffset').value);
+            if (limit < 1 || offset < 0) throw new Error('Limit must be positive and offset non-negative');
+            const data = await apiRequest(`/song/${video_id}/related`, 'GET', null, { limit, offset });
+            displayResults('relatedResults', data);
+        } catch (e) {
+            displayError('relatedResults', e);
+        }
+    }
+
+    async function getLyrics() {
+        try {
+            const video_id = validateInput('lyricsVideoId', 'Video ID is required');
+            const data = await apiRequest(`/song/${video_id}/lyrics`);
+            displayResults('lyricsResults', data);
+        } catch (e) {
+            displayError('lyricsResults', e);
+        }
+    }
+
+    async function rateSong() {
+        try {
+            const video_id = validateInput('rateVideoId', 'Video ID is required');
+        const rating = document.getElementById('rateRating').value;
+        const data = await apiRequest(`/song/${video_id}/rate`, 'POST', { rating });
+        displayResults('rateResults', data);
+        } catch (e) {
+            displayError('rateResults', e);
+        }
+    }
+
+    async function browseMusic() {
+        try {
+            const category = validateInput('browseCategory', 'Category is required');
+            const limit = parseInt(document.getElementById('browseLimit').value);
+            if (limit < 1) throw new Error('Limit must be a positive integer');
+            const data = await apiRequest('/browse', 'GET', null, { category, limit });
+            displayResults('browseResults', data);
+        } catch (e) {
+            displayError('browseResults', e);
+        }
+    }
+
+    async function getMoodPlaylists() {
+        try {
+            const mood = validateInput('moodMood', 'Mood is required');
+            const limit = parseInt(document.getElementById('moodLimit').value);
+            if (limit < 1) throw new Error('Limit must be a positive integer');
+            const data = await apiRequest('/mood', 'GET', null, { mood, limit });
+            displayResults('moodResults', data);
+        } catch (e) {
+            displayError('moodResults', e);
+        }
+    }
+
+    async function getUserLibrary() {
+        try {
+            const limit = parseInt(document.getElementById('libraryLimit').value);
+            if (limit < 1) throw new Error('Limit must be a positive integer');
+            const data = await apiRequest('/user/library', 'GET', null, { limit });
+            displayResults('libraryResults', data);
+        } catch (e) {
+            displayError('libraryResults', e);
+        }
+    }
+
+    async function getUserUploads() {
+        try {
+            const limit = parseInt(document.getElementById('uploadsLimit').value);
+            if (limit < 1) throw new Error('Limit must be a positive integer');
+            const data = await apiRequest('/user/uploads', 'GET', null, { limit });
+            displayResults('uploadsResults', data);
+        } catch (e) {
+            displayError('uploadsResults', e);
+        }
+    }
+
+    async function getTopCharts() {
+        try {
+            const country = validateInput('chartsCountry', 'Country code is required');
+            if (country.length !== 2) throw new Error('Country code must be a 2-letter ISO code');
+            const limit = parseInt(document.getElementById('chartsLimit').value);
+            if (limit < 1) throw new Error('Limit must be a positive integer');
+            const data = await apiRequest('/charts', 'GET', null, { country, limit });
+            displayResults('chartsResults', data);
+        } catch (e) {
+            displayError('chartsResults', e);
+        }
+    }
+
+    async function getSearchSuggestions() {
+        try {
+            const q = validateInput('suggestionsQuery', 'Query is required');
+            const data = await apiRequest('/suggestions', 'GET', null, { q });
+            displayResults('suggestionsResults', data);
+        } catch (e) {
+            displayError('suggestionsResults', e);
+        }
+    }
+
+    async function batchRequest() {
+        try {
+            const video_ids = document.getElementById('batchVideoIds').value
+                .split(',')
+                .map(id => id.trim())
+                .filter(id => id);
+            const playlist_ids = document.getElementById('batchPlaylistIds').value
+                .split(',')
+                .map(id => id.trim())
+                .filter(id => id);
+            if (!video_ids.length && !playlist_ids.length) {
+                throw new Error('At least one video ID or playlist ID is required');
+            }
+            const limit = parseInt(document.getElementById('batchLimit').value);
+            const offset = parseInt(document.getElementById('batchOffset').value);
+            if (limit < 1 || offset < 0) throw new Error('Limit must be positive and offset non-negative');
+            const data = await apiRequest('/batch', 'POST', { video_ids, playlist_ids, limit, offset });
+            displayResults('batchResults', data);
+        } catch (e) {
+            displayError('batchResults', e);
+        }
+    }
+   async function downloadAudio() {
+    try {
+        const video_id = validateInput('downloadVideoId', 'Video ID is required');
+
+        // Step 1: Start download job
+        const job = await apiRequest(`/download/${video_id}?quality=high`);
+        if (!job.job_id) throw new Error("Failed to start download job");
+
+        // Step 2: Poll status until completed
+        let done = false;
+        let jobData;
+        while (!done) {
+            await new Promise(r => setTimeout(r, 3000)); // wait 3s
+            jobData = await apiRequest(`/download/status/${job.job_id}`);
+            displayResults('downloadResults', jobData);
+
+            if (jobData.status === "completed") {
+                done = true;
+            } else if (jobData.status === "failed") {
+                throw new Error(jobData.error || "Download failed");
+            }
+        }
+
+        // Step 3: Fetch the actual file when ready
+        const fileResponse = await fetch(`${API_BASE}/download/file/${job.job_id}`);
+        if (!fileResponse.ok) {
+            throw new Error("File not ready or download failed");
+        }
+
+        // Step 4: Save file
+        const blob = await fileResponse.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.style.display = "none";
+        a.href = url;
+        a.download = `${video_id}.m4a`; // filename
+        document.body.appendChild(a);
+        a.click();
+
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        displayResults('downloadResults', { message: '✅ Download successful' });
+    } catch (e) {
+        displayError('downloadResults', e);
+    }
+}
+
+
+
+
+
+    </script>
+
+</body>
+</html>
