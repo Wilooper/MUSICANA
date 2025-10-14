@@ -34,7 +34,7 @@ cache = Cache(app, config={
 
 # Initialize YTMusic with OAuth or fallback to header-based authentication
 try:
-    ytmusic = YTMusic('oauth.json', oauth_credentials=OAuthCredentials(client_id='1025031628526-p57dae03qh9tr5ohrjq3qh5p2m695pro.apps.googleusercontent.com',client_secret='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'))
+    ytmusic = YTMusic('oauth.json', oauth_credentials=OAuthCredentials(client_id='YOUR_CLIENT_ID ',client_secret='YOUR_CLIENT_ID'))
 except Exception as e:
     logger.warning(f"OAuth initialization failed: {str(e)}, attempting header-based authentication")
     try:
