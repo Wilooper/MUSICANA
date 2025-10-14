@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#000000">
+    <title>MUSICANA • Premium Music Experience</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    
+</head>
+<body>
+
+    <!-- Background Effects -->
+    <div class="background-layer">
+        <div class="noise-texture"></div>
+        <div class="vignette"></div>
+    </div>
+
+    <!-- Gradient Orbs -->
+    <div class="gradient-orb orb-1"></div>
+    <div class="gradient-orb orb-2"></div>
+    <div class="gradient-orb orb-3"></div>
+
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
+    <!-- Menu Overlay -->
+    <div class="menu-overlay" id="menuOverlay"></div>
+
+    <!-- Main App -->
+    <div class="app-wrapper">
+        <div class="app-container">
+            <!-- Premium Sidebar -->
+            <aside class="sidebar" id="sidebar">
+                <div class="logo-section">
+                    <div class="logo-text">MUSICANA</div>
+                    <div class="logo-tagline">Premium Sound</div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-group-title">Discover</div>
+                    <div class="nav-items">
+                        <div class="nav-item active" data-page="home">
+                            <span class="nav-icon">🏠</span>
+                            <span>Home</span>
+                        </div>
+                        <div class="nav-item" data-page="search">
+                            <span class="nav-icon">🔍</span>
+                            <span>Search</span>
+                        </div>
+                        <div class="nav-item" data-page="trending">
+                            <span class="nav-icon">🔥</span>
+                            <span>Trending</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-group-title">Library</div>
+                    <div class="nav-items">
+                        <div class="nav-item" data-page="library">
+                            <span class="nav-icon">📚</span>
+                            <span>Your Library</span>
+                        </div>
+                        <div class="nav-item" data-page="playlists">
+                            <span class="nav-icon">🎵</span>
+                            <span>Playlists</span>
+                        </div>
+                        <div class="nav-item" data-page="podcasts">
+                            <span class="nav-icon">🎙️</span>
+                            <span>Podcasts</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-group-title">Explore</div>
+                    <div class="nav-items">
+                        <div class="nav-item" data-page="mood">
+                            <span class="nav-icon">😊</span>
+                            <span>Moods</span>
+                        </div>
+                        <div class="nav-item" data-page="genres">
+                            <span class="nav-icon">🎸</span>
+                            <span>Genres</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content" id="mainContent">
+                <div class="top-bar">
+                    <div class="search-wrapper">
+                        <div class="search-container">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" class="search-input" id="searchInput" placeholder="Search for songs, artists, albums...">
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <div class="action-btn" title="Notifications">🔔</div>
+                        <div class="action-btn" title="Settings">⚙️</div>
+                        <div class="action-btn" title="Profile">👤</div>
+                    </div>
+                </div>
+
+                <div id="contentArea"></div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Fullscreen Player -->
+    <div class="fullscreen-player" id="fullscreenPlayer">
+        <div class="player-bg" id="playerBg"></div>
+        <div class="player-wrapper">
+            <div class="player-close" id="playerClose">✕</div>
+
+            <div class="artwork-section">
+                <div class="artwork-glow"></div>
+                <div class="artwork-container">
+                    <img id="playerArtwork" src="" alt="Album Art">
+                    <div class="wave-visualizer">
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="song-info">
+                <h1 class="song-title" id="playerTitle">Song Title</h1>
+                <p class="song-artist" id="playerArtist">Artist Name</p>
+            </div>
+
+            <div class="player-controls-section">
+                <div class="controls">
+                    <div class="control-btn" id="shuffleBtn">🔀</div>
+                    <div class="control-btn" id="prevBtn">⏮️</div>
+                    <div class="control-btn play" id="playPauseBtn">▶️</div>
+                    <div class="control-btn" id="nextBtn">⏭️</div>
+                    <div class="control-btn" id="repeatBtn">🔁</div>
+                </div>
+
+                <div class="progress">
+                    <div class="time-display">
+                        <span id="currentTime">0:00</span>
+                        <span id="totalTime">0:00</span>
+                    </div>
+                    <div class="progress-track" id="progressTrack">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+
+                <div class="lyrics-panel" id="lyricsPanel">
+                    <div class="lyric-line">Loading synced lyrics...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mini Player -->
+    <div class="mini-player" id="miniPlayer">
+        <div class="mini-artwork">
+            <img id="miniArtwork" src="" alt="">
+        </div>
+        <div class="mini-info">
+            <div class="mini-song-title" id="miniTitle">Song Title</div>
+            <div class="mini-song-artist" id="miniArtist">Artist Name</div>
+        </div>
+        <div class="mini-controls">
+            <button class="mini-ctrl-btn" id="miniPrevBtn">⏮️</button>
+            <button class="mini-ctrl-btn" id="miniPlayBtn">▶️</button>
+            <button class="mini-ctrl-btn" id="miniNextBtn">⏭️</button>
+        </div>
+        <button class="mini-expand" id="miniExpandBtn">⬆️</button>
+    </div>
+
+    <audio id="audioPlayer"></audio>
+
+    
+    
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
