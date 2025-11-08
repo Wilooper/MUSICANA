@@ -41,12 +41,3 @@ def lyrics(song_name):
         time.sleep(max(start - prev, 0))
         print(line["text"])
         prev = start
-
-
-def start(init=True):
-   if init: 
-      os.system('pkill -f python')
-      os.system('clear')
-      os.system('python3 api.py')
-   else:
-       print('running in manual mode....')
